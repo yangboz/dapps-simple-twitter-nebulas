@@ -3,7 +3,7 @@
 var TiwitterItem = function(text) {
 	if (text) {
 		var obj = JSON.parse(text);
-		this.key = obj.key;
+		this.key = obj.key;//timestamp
 		this.value = obj.value;
 		this.author = obj.author;
 	} else {
@@ -52,7 +52,7 @@ SimpleTwitter.prototype = {
             throw new Error("value has been occupied");
         }
 
-        dictItem = new DictItem();
+        dictItem = new TiwitterItem();
         dictItem.author = from;
         dictItem.key = key;
         dictItem.value = value;
@@ -61,11 +61,15 @@ SimpleTwitter.prototype = {
     },
 
     get: function (key) {
+        if ( key === -1 ) {
+            throw this.repo;
+        }
         key = key.trim();
         if ( key === "" ) {
-            throw new Error("empty key")
+            throw new Error("empty key");
         }
         return this.repo.get(key);
     }
+
 };
 module.exports = SimpleTwitter;

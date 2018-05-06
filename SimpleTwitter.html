@@ -56,12 +56,12 @@
             <div class="twt-wrapper">
                 <div class="panel panel-info">
                     <div class="panel-heading">
-                        <a href="#">Refresh</a>
+                        <a href="#" id="refresh">Refresh</a>
                     </div>
                     <div class="panel-body">
-                        <textarea class="form-control" placeholder="Enter here for tweet..." rows="3"></textarea>
+                        <textarea id="tweet_textarea" class="form-control" placeholder="Enter here for tweet..." rows="3"></textarea>
                         <br />
-                        <a href="#" class="btn btn-primary btn-sm pull-right">Tweet</a>
+                        <a id="tweet" href="#" class="btn btn-primary btn-sm pull-right">Tweet</a>
                         <div class="clearfix"></div>
                         <hr />
                         <ul class="media-list">
@@ -119,7 +119,148 @@
         </div>
     </div>
 </div>
+<div class="noExtension hide" id="noExtension">
+    NOTE: Please install <a target="_blank" href="https://github.com/ChengOrangeJu/WebExtensionWallet">WebExtensionWallet</a>  to use SUPER DICTIONARY
+</div>
+
+<script src=lib/jquery-3.3.1.min.js></script>
+<script src=lib/nebPay.js></script>
+<script src=lib/bootstrap-4.0.0-dist/js/bootstrap.min.js></script>
+<script>
+    var NebPay = require("nebpay");     //https://github.com/nebulasio/nebPay
+    var nebPay = new NebPay();
+
+    $("#search_value").attr("disabled",true)
+    $("#search").attr("disabled",true)
 
 
+    //to check if the extension is installed
+    //if the extension is installed, var "webExtensionWallet" will be injected in to web page
+    if(typeof(webExtensionWallet) === "undefined"){
+        //alert ("Extension wallet is not installed, please install it first.")
+        $("#noExtension").removeClass("hide")
+    }else{
+        $("#search_value").attr("disabled",false)
+        $("#search").attr("disabled",false)
+    }
+
+    var dappAddress = "n1zq8jyp63ij463d2QGXrJAvzNdzrV7x7L6";//TxHash:ef06d4d2e5c883f8b335e8a1cad7a614256b4f3d1c25a8617efe80f049b36aaa
+
+    // 搜索功能: 查找Super-Dictionary 中有没有该词条
+    $("#refresh").click(function(){
+        console.log("refreshing...");
+        // $("#search_value").val() 搜索框内的值
+
+        var to = dappAddress;
+        var value = "0";
+        var callFunction = "get";
+        var callArgs = "[-1]"; //in the form of ["args"]
+        // nebPay.simulateCall(to, value, callFunction, callArgs, {    //使用nebpay的simulateCall接口去执行get查询, 模拟执行.不发送交易,不上链
+        //     callback: cbSearch      //指定回调函数
+        // });
+        nebPay.simulateCall(to, value, callFunction,callArgs, {    //
+            callback: getAll      //指定回调函数
+        });
+    })
+
+    function getAll(resp) {
+        console.log(resp);
+        var result = resp.result;
+        console.log("return of rpc call: " + JSON.stringify(result))
+    }
+
+    //return of search,
+    function cbSearch(resp) {
+        console.log(resp);
+        var result = resp.result
+        console.log("return of rpc call: " + JSON.stringify(result))
+
+        if (result === 'null'){
+            $(".add_banner").addClass("hide");
+            $(".result_success").addClass("hide");
+
+            $("#result_faile_add").text($("#search_value").val())
+
+            $(".result_faile").removeClass("hide");
+        } else{
+            //if result is not null, then it should be "return value" or "error message"
+            try{
+                result = JSON.parse(result)
+            }catch (err){
+                //result is the error message
+            }
+
+            if (!!result.key){      //"return value"
+                $(".add_banner").addClass("hide");
+                $(".result_faile").addClass("hide");
+
+                $("#search_banner").text($("#search_value").val())
+                $("#search_result").text(result.value)
+                $("#search_result_author").text(result.author)
+
+                $(".result_success").removeClass("hide");
+            } else {        //"error message"
+                $(".add_banner").addClass("hide");
+                $(".result_faile").addClass("hide");
+
+                $("#search_banner").text($("#search_value").val())
+                $("#search_result").text(result)
+                $("#search_result_author").text("")
+
+                $(".result_success").removeClass("hide");
+            }
+
+        }
+
+    }
+
+    // 添加信息功能: 像super-dictionary 中添加词条
+    $("#tweet").click(function(event) {
+        $(".result_faile").addClass("hide");
+        $(".add_banner").removeClass("hide");
+
+        $("#add_value").val("")
+        //
+        var to = dappAddress;
+        var value = "0";
+        var callFunction = "save";
+        var timeStamp = event.timeStamp;
+        console.log("timeStamp:"+timeStamp);
+        var callArgs = "[\"" + timeStamp + "\",\"" + $("#tweet_textarea").val() + "\"]"
+
+        nebPay.call(to, value, callFunction, callArgs, {    //使用nebpay的call接口去调用合约,
+            callback: cbTweet
+        });
+    })
+    function cbTweet(resp) {
+        console.log("response of tweet: " + resp.toString());
+    }
+
+    // 添加信息功能: 像super-dictionary 中添加词条
+    $("#add").click(function() {
+        $(".result_faile").addClass("hide");
+        $(".add_banner").removeClass("hide");
+
+        $("#add_value").val("")
+    })
+
+    $("#push").click(function() {
+
+        var to = dappAddress;
+        var value = "0";
+        var callFunction = "save"
+        var callArgs = "[\"" + $("#search_value").val() + "\",\"" + $("#add_value").val() + "\"]"
+
+        nebPay.call(to, value, callFunction, callArgs, {    //使用nebpay的call接口去调用合约,
+            callback: cbPush
+        });
+    });
+
+    function cbPush(resp) {
+        console.log("response of push: " + resp)
+    }
+
+
+</script>
 </body>
 </html>
