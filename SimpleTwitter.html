@@ -59,11 +59,12 @@
                         <a href="#" id="refresh">Refresh</a>
                     </div>
                     <div class="panel-body">
-                        <textarea id="tweet_textarea" class="form-control" placeholder="Enter here for tweet..." rows="3"></textarea>
+                        <textarea id="tweet_textarea" class="form-control" placeholder="Enter here for tweet..." rows="3" maxlength="64"></textarea>
                         <br />
                         <a id="tweet" href="#" class="btn btn-primary btn-sm pull-right">Tweet</a>
                         <div class="clearfix"></div>
                         <hr />
+
                         <ul class="media-list">
                             <li class="media">
                                 <a href="#" class="pull-left">
@@ -111,7 +112,7 @@
                             </li>
                         </ul>
                         <span class="text-danger">37K tweets,</span>
-                        <span class="text-danger">237K users active</span>
+                        <span class="text-danger">237K users</span>
                     </div>
                 </div>
             </div>
@@ -130,96 +131,53 @@
     var NebPay = require("nebpay");     //https://github.com/nebulasio/nebPay
     var nebPay = new NebPay();
 
-    $("#search_value").attr("disabled",true)
-    $("#search").attr("disabled",true)
+    var dappAddress = "n1kNWwesHJGbZhEe9bGpTQuXYDHNUAoRNor";//TxHash:149310bc2658d13f052f3a7b7dd679b2c0215a2b31eec01c661501df6eb25ad9
 
-
-    //to check if the extension is installed
-    //if the extension is installed, var "webExtensionWallet" will be injected in to web page
-    if(typeof(webExtensionWallet) === "undefined"){
-        //alert ("Extension wallet is not installed, please install it first.")
-        $("#noExtension").removeClass("hide")
-    }else{
-        $("#search_value").attr("disabled",false)
-        $("#search").attr("disabled",false)
+    function getIndexKeys(resp) {
+        console.log(resp);
     }
-
-    var dappAddress = "n1zq8jyp63ij463d2QGXrJAvzNdzrV7x7L6";//TxHash:ef06d4d2e5c883f8b335e8a1cad7a614256b4f3d1c25a8617efe80f049b36aaa
-
-    // 搜索功能: 查找Super-Dictionary 中有没有该词条
-    $("#refresh").click(function(){
-        console.log("refreshing...");
-        // $("#search_value").val() 搜索框内的值
-
+    function getKeyValuesCallback(resp) {
+        console.log(resp);
+    }
+    function getKeyValues() {
         var to = dappAddress;
         var value = "0";
-        var callFunction = "get";
-        var callArgs = "[-1]"; //in the form of ["args"]
-        // nebPay.simulateCall(to, value, callFunction, callArgs, {    //使用nebpay的simulateCall接口去执行get查询, 模拟执行.不发送交易,不上链
-        //     callback: cbSearch      //指定回调函数
-        // });
+        var callFunction = "getKeyValues";
+        var callArgs = null; //in the form of ["args"]
         nebPay.simulateCall(to, value, callFunction,callArgs, {    //
-            callback: getAll      //指定回调函数
+            callback: getKeyValuesCallback      //指定回调函数
         });
+    }
+    //
+    function getAll() {//unique
+        var to = dappAddress;
+        var value = "0";
+        var callFunction = "getAll";
+        var callArgs = null; //in the form of ["args"]
+        nebPay.simulateCall(to, value, callFunction,callArgs, {    //
+            callback: getAllCallback      //指定回调函数
+        });
+    }
+    function getAllCallback(resp) {
+        console.log("return of rpc call: " + resp.result);
+        var getAllResult = JSON.parse(resp.result);
+        // var getAllResult = eval(resp.result);
+        console.log("return of rpc call: " + getAllResult +",len:"+getAllResult.length);
+        //
+        for (var index = 0; index < getAllResult.length; ++index) {
+            var obj = getAllResult[index];
+            alert("Key: "+obj.timestamp+"\n"+"Author:"+obj.author+"\n"+"value: "+obj.value+"\n");
+        }
+    }
+
+    // 刷新功能: 获取Simple-Twitter 中所有条目
+    $("#refresh").click(function(){
+        console.log("refreshing...");
+       getAll();
     })
 
-    function getAll(resp) {
-        console.log(resp);
-        var result = resp.result;
-        console.log("return of rpc call: " + JSON.stringify(result))
-    }
-
-    //return of search,
-    function cbSearch(resp) {
-        console.log(resp);
-        var result = resp.result
-        console.log("return of rpc call: " + JSON.stringify(result))
-
-        if (result === 'null'){
-            $(".add_banner").addClass("hide");
-            $(".result_success").addClass("hide");
-
-            $("#result_faile_add").text($("#search_value").val())
-
-            $(".result_faile").removeClass("hide");
-        } else{
-            //if result is not null, then it should be "return value" or "error message"
-            try{
-                result = JSON.parse(result)
-            }catch (err){
-                //result is the error message
-            }
-
-            if (!!result.key){      //"return value"
-                $(".add_banner").addClass("hide");
-                $(".result_faile").addClass("hide");
-
-                $("#search_banner").text($("#search_value").val())
-                $("#search_result").text(result.value)
-                $("#search_result_author").text(result.author)
-
-                $(".result_success").removeClass("hide");
-            } else {        //"error message"
-                $(".add_banner").addClass("hide");
-                $(".result_faile").addClass("hide");
-
-                $("#search_banner").text($("#search_value").val())
-                $("#search_result").text(result)
-                $("#search_result_author").text("")
-
-                $(".result_success").removeClass("hide");
-            }
-
-        }
-
-    }
-
-    // 添加信息功能: 像super-dictionary 中添加词条
+    // 添加条目功能: 像Simple-Twitter 中添加词条
     $("#tweet").click(function(event) {
-        $(".result_faile").addClass("hide");
-        $(".add_banner").removeClass("hide");
-
-        $("#add_value").val("")
         //
         var to = dappAddress;
         var value = "0";
@@ -229,37 +187,12 @@
         var callArgs = "[\"" + timeStamp + "\",\"" + $("#tweet_textarea").val() + "\"]"
 
         nebPay.call(to, value, callFunction, callArgs, {    //使用nebpay的call接口去调用合约,
-            callback: cbTweet
+            callback: addTweetCallback
         });
     })
-    function cbTweet(resp) {
+    function addTweetCallback(resp) {
         console.log("response of tweet: " + resp.toString());
     }
-
-    // 添加信息功能: 像super-dictionary 中添加词条
-    $("#add").click(function() {
-        $(".result_faile").addClass("hide");
-        $(".add_banner").removeClass("hide");
-
-        $("#add_value").val("")
-    })
-
-    $("#push").click(function() {
-
-        var to = dappAddress;
-        var value = "0";
-        var callFunction = "save"
-        var callArgs = "[\"" + $("#search_value").val() + "\",\"" + $("#add_value").val() + "\"]"
-
-        nebPay.call(to, value, callFunction, callArgs, {    //使用nebpay的call接口去调用合约,
-            callback: cbPush
-        });
-    });
-
-    function cbPush(resp) {
-        console.log("response of push: " + resp)
-    }
-
 
 </script>
 </body>
