@@ -21,8 +21,8 @@
 <div class="container">
     <div class="row">
         <div class="col-md-12 text-center">
-            <h2>Simple Nebulas Twitter</h2>
-            <h6>Crafted by <a href="http://github.com/yangboz">yangboz</a> </h6>
+            <h2>Immutable PinBoard</h2>
+            <h6>Crafted by <a href="http://github.com/yangboz">yangboz</a>,Inspired by <a href="http://github.com/derawi">Awid</a> </h6>
             <br />
         </div>
     </div>
@@ -36,16 +36,16 @@
                         <a href="#" id="refresh">Refresh</a>
                     </div>
                     <div class="panel-body">
-                        <textarea id="tweet_textarea" class="form-control" placeholder="Enter here for tweet..." rows="3" maxlength="64"></textarea>
+                        <textarea id="tweet_textarea" class="form-control" placeholder="Enter your message..." rows="3" maxlength="64"></textarea>
                         <br />
-                        <a id="tweet" href="#" class="btn btn-primary btn-sm pull-right">Tweet</a>
+                        <a id="tweet" href="#" class="btn btn-primary btn-sm pull-right">Pin forever</a>
                         <div class="clearfix"></div>
                         <hr />
 
                         <ul class="media-list" id="tweetsUl">
                         </ul>
 
-                        <span class="text-danger" id="numTweets_span">0 tweets,</span>
+                        <span class="text-danger" id="numTweets_span">0 pins,</span>
                         <span class="text-danger" id="numUsers_span">0 users</span>
                     </div>
                 </div>
@@ -66,7 +66,10 @@
     var NebPay = require("nebpay");     //https://github.com/nebulasio/nebPay
     var nebPay = new NebPay();
 
-    var dappAddress = "n1kNWwesHJGbZhEe9bGpTQuXYDHNUAoRNor";//TxHash:149310bc2658d13f052f3a7b7dd679b2c0215a2b31eec01c661501df6eb25ad9
+    //Testnet
+    // var dappAddress = "n1kNWwesHJGbZhEe9bGpTQuXYDHNUAoRNor";//TxHash:149310bc2658d13f052f3a7b7dd679b2c0215a2b31eec01c661501df6eb25ad9
+    //Mainnet
+    var dappAddress = "n1eX7A9xMv6nxoXaSKodumPzV1wuC78HBra";//15618873e6e65786a27d08ed0095393e7fff203ddac6ee2602d336181371eccf
 
     function getIndexKeys(resp) {
         console.log(resp);
@@ -128,7 +131,7 @@
             $("#tweetsUl").append(listEle);
         }
         //
-        $("#numTweets_span").text(getAllResult.length+" tweets,");
+        $("#numTweets_span").text(getAllResult.length+" pins,");
         //TODO:get unique users.
 
         $("#numUsers_span").text(uniqueUsers.length+" users");

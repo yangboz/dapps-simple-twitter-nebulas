@@ -1,0 +1,212 @@
+<!doctype html>
+<html>
+<head>
+<script type="text/javascript" src="lib/jquery-3.3.1.min.js"></script>
+<script type="text/javascript" src="lib/turn.min.js"></script>
+<script src=lib/nebPay.js></script>
+
+<style type="text/css">
+body{
+	background:#ccc;
+}
+#book{
+	width:800px;
+	height:500px;
+}
+
+#book .turn-page{
+	background-color:white;
+}
+
+#book .cover{
+	background:#333;
+}
+
+#book .cover h1{
+	color:white;
+	text-align:center;
+	font-size:50px;
+	line-height:500px;
+	margin:0px;
+}
+
+#book .loader{
+	background-image:url(loader.gif);
+	width:24px;
+	height:24px;
+	display:block;
+	position:absolute;
+	top:238px;
+	left:188px;
+}
+
+#book .data{
+	text-align:center;
+	font-size:40px;
+	color:#999;
+	line-height:500px;
+}
+
+#controls{
+	width:800px;
+	text-align:center;
+	margin:20px 0px;
+	font:30px arial;
+}
+
+#controls input, #controls label{
+	font:30px arial;
+}
+
+#book .odd{
+	background-image:-webkit-linear-gradient(left, #FFF 95%, #ddd 100%);
+	background-image:-moz-linear-gradient(left, #FFF 95%, #ddd 100%);
+	background-image:-o-linear-gradient(left, #FFF 95%, #ddd 100%);
+	background-image:-ms-linear-gradient(left, #FFF 95%, #ddd 100%);
+}
+
+#book .even{
+	background-image:-webkit-linear-gradient(right, #FFF 95%, #ddd 100%);
+	background-image:-moz-linear-gradient(right, #FFF 95%, #ddd 100%);
+	background-image:-o-linear-gradient(right, #FFF 95%, #ddd 100%);
+	background-image:-ms-linear-gradient(right, #FFF 95%, #ddd 100%);
+}
+</style>
+</head>
+<body>
+
+<div id="book">
+	<div class="cover"><h1>The Bible</h1></div>
+</div>
+
+<div id="controls">
+	<label>
+	I believe in God, the Father Almighty, creator of heaven and earth. I believe in Jesus Christ, his only Son, our Lord, who was conceived by the Holy Spirit, born of the Virgin Mary, suffered under Pontius Pilate, was crucified, died, and was buried; he descended to the dead.
+	</label>
+		<label for="page-number">Page:</label> <input type="text" size="3" id="page-number"> of <span id="number-pages"></span>
+</div>
+
+<script type="text/javascript">
+	//
+    var NebPay = require("nebpay");     //https://github.com/nebulasio/nebPay
+    var nebPay = new NebPay();
+
+    //Testnet
+    // var dappAddress = "n1kNWwesHJGbZhEe9bGpTQuXYDHNUAoRNor";//TxHash:149310bc2658d13f052f3a7b7dd679b2c0215a2b31eec01c661501df6eb25ad9
+    //Mainnet
+	var dappAddress = "n1eX7A9xMv6nxoXaSKodumPzV1wuC78HBra";//15618873e6e65786a27d08ed0095393e7fff203ddac6ee2602d336181371eccf
+
+	// Sample using dynamic pages with turn.js
+
+	var numberOfPages=20;
+
+	var getAllResultCache;
+
+    var curPageElement;//current page html element.
+    function addPageElement(data) {
+        var elementData = '<div class="data">'+data.value+'</div>';
+        curPageElement.html(elementData);
+    }
+    //
+    function getAllCallback(resp) {
+        console.log("return of rpc call: " + resp.result);
+        var getAllResult = JSON.parse(JSON.parse(resp.result));
+        //reverse
+        getAllResultCache = getAllResult.reverse();
+        numberOfPages = getAllResultCache.length;
+        //
+        var uniqueUsers = [];
+        for (var index = 0; index < getAllResultCache.length; ++index) {
+            var obj = getAllResultCache[index];
+            console.log("Key: " + obj.key + "\n" + "Author:" + obj.author + "\n" + "value: " + obj.value + "\n");
+            //
+            if (uniqueUsers.indexOf(obj.author) == -1) {
+                uniqueUsers.push(obj.author);
+            }
+			//
+			addPageElement(obj);
+        }
+    }
+    //
+    function getAll() {//unique
+        var to = dappAddress;
+        var value = "0";
+        var callFunction = "getAll";
+        var callArgs = null; //in the form of ["args"]
+        nebPay.simulateCall(to, value, callFunction,callArgs, {    //
+            callback: getAllCallback      //指定回调函数
+        });
+    }
+
+    function addPage(page, book) {
+        // Check if the page is not in the book
+        if (!book.turn('hasPage', page)) {
+            // Create an element for this page
+            // curPageElement = $('<div />').html('<i class="loader"></i>');
+            curPageElement = $('<div />').html('');
+            // Add the page
+            book.turn('addPage', curPageElement, page);
+            // Get the dapps' data for this page
+            // $.ajax({url: "app?method=get-page-content&page="+page})
+            //     .done(function(data) {
+            //         element.html(data);
+            //     });
+            if(getAllResultCache!=undefined){
+                console.log("getAllResultCache.length:",getAllResultCache.length);
+                // Adds the pages that the book will need
+                addPageElement(getAllResultCache[page]);
+			}else {
+                getAll();
+			}
+
+        }
+    }
+
+	$(window).ready(function(){
+		$('#book').turn({acceleration: true,
+							pages: numberOfPages,
+							elevation: 50,
+							gradients: !$.isTouch,
+							when: {
+								turning: function(e, page, view) {
+
+									// Gets the range of pages that the book needs right now
+									var range = $(this).turn('range', page);
+
+									// Check if each page is within the book
+									for (page = range[0]; page<=range[1]; page++) 
+										addPage(page, $(this));
+
+								},
+
+								turned: function(e, page) {
+									$('#page-number').val(page);
+								}
+							}
+						});
+
+		$('#number-pages').html(numberOfPages);
+
+		$('#page-number').keydown(function(e){
+
+			if (e.keyCode==13)
+				$('#book').turn('page', $('#page-number').val());
+				
+		});
+	});
+
+	$(window).bind('keydown', function(e){
+
+		if (e.target && e.target.tagName.toLowerCase()!='input')
+			if (e.keyCode==37)
+				$('#book').turn('previous');
+			else if (e.keyCode==39)
+				$('#book').turn('next');
+
+	});
+
+</script>
+
+
+</body>
+</html>
